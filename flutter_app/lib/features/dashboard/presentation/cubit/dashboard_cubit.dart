@@ -1,33 +1,28 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dashboard_state.dart';
 
-import '../../domain/usecases/get_total_expenses.dart';
-import '../../domain/usecases/get_category_expenses.dart';
-import '../../domain/usecases/get_monthly_expenses.dart';
+class DashboardCubit extends Cubit<DashboardState> {
 
-class DashboardCubit extends Cubit<Map<String, dynamic>> {
-
-  final GetTotalExpenses getTotalExpenses;
-  final GetCategoryExpenses getCategoryExpenses;
-  final GetMonthlyExpenses getMonthlyExpenses;
-
-  DashboardCubit({
-    required this.getTotalExpenses,
-    required this.getCategoryExpenses,
-    required this.getMonthlyExpenses,
-  }) : super({});
+  DashboardCubit() : super(DashboardInitial());
 
   Future<void> loadDashboard() async {
 
-    final total = await getTotalExpenses();
-    final categories = await getCategoryExpenses();
-    final monthly = await getMonthlyExpenses();
+    emit(DashboardLoading());
 
-    emit({
-      "total": total,
-      "categories": categories,
-      "monthly": monthly,
-    });
+    await Future.delayed(const Duration(seconds: 1));
+
+    emit(
+      DashboardLoaded(
+        dashboard: {
+          "total": 1200,
+          "categories": [
+            {"name": "Food", "amount": 400},
+            {"name": "Transport", "amount": 300},
+            {"name": "Shopping", "amount": 500},
+          ]
+        },
+      ),
+    );
 
   }
-
 }

@@ -19,6 +19,9 @@ import 'features/expenses/domain/usecases/get_expenses.dart';
 import 'features/expenses/domain/usecases/add_expense.dart';
 import 'features/expenses/domain/usecases/delete_expense.dart';
 
+// DASHBOARD
+import 'features/dashboard/presentation/cubit/dashboard_cubit.dart';
+
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +66,11 @@ class MyApp extends StatelessWidget {
             addExpenseUseCase: AddExpense(expenseRepository),
             deleteExpenseUseCase: DeleteExpense(expenseRepository),
           ),
+        ),
+
+        /// DASHBOARD CUBIT
+        BlocProvider(
+          create: (_) => DashboardCubit(),
         ),
 
       ],

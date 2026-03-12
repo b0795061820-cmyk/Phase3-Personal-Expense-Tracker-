@@ -1,75 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../cubit/dashboard_cubit.dart';
+import '../cubit/dashboard_state.dart';
 
-class DashboardPage extends StatelessWidget {
-
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<DashboardCubit>().loadDashboard();
+  }
 
   @override
   Widget build(BuildContext context) {
 
-    context.read<DashboardCubit>().loadDashboard();
-
     return Scaffold(
-
       appBar: AppBar(
         title: const Text("Dashboard"),
       ),
 
-      body: BlocBuilder<DashboardCubit, Map<String, dynamic>>(
-
+      body: BlocBuilder<DashboardCubit, DashboardState>(
         builder: (context, state) {
 
-          if (state.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+          if (state is DashboardLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
-          return Column(
+          if (state is DashboardLoaded) {
 
-            children: [
+            final data = state.dashboard;
 
-              const SizedBox(height: 20),
+            final total = data["total"];
+            final categories = data["categories"] as List;
 
-              Text(
-                "Total Expenses: ${state["total"]}",
-                style: const TextStyle(fontSize: 20),
-              ),
+            return Column(
+              children: [
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 20),
 
-              const Text("Expenses by Category"),
-
-              Expanded(
-                child: ListView.builder(
-
-                  itemCount: state["categories"].length,
-
-                  itemBuilder: (context, index) {
-
-                    final item = state["categories"][index];
-
-                    return ListTile(
-                      title: Text(item["category"]),
-                      trailing: Text(item["total"].toString()),
-                    );
-
-                  },
-
+                const Text(
+                  "Total Expenses",
+                  style: TextStyle(fontSize: 20),
                 ),
-              ),
 
-            ],
+                Text(
+                  "$total",
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
 
+                const SizedBox(height: 30),
+
+                Expanded(
+                  child: PieChart(
+                    PieChartData(
+                      sections: categories.map((e) {
+                        return PieChartSectionData(
+                          value: (e["amount"] as num).toDouble(),
+                          title: e["name"],
+                          radius: 80,
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return const Center(
+            child: Text("No Data"),
           );
-
         },
-
       ),
-
     );
-
   }
-
 }

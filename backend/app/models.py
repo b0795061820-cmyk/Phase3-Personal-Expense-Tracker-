@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, Enum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date
 from sqlalchemy.orm import relationship
 import enum
 
@@ -38,14 +38,13 @@ class User(Base):
 
     hashed_password = Column(String, nullable=False)
 
-    # استخدام Enum للـ roles
-    role = Column(Enum(UserRole), default=UserRole.user, nullable=False)
+    role = Column(String, default="user", nullable=False)
 
-    # علاقة المستخدم مع المصاريف
     expenses = relationship(
         "Expense",
         back_populates="owner",
-        cascade="all, delete"
+        cascade="all, delete",
+        lazy="joined"
     )
 
 
@@ -61,8 +60,8 @@ class Expense(Base):
 
     amount = Column(Float, nullable=False)
 
-    # استخدام Enum للفئات
-    category = Column(Enum(ExpenseCategory), nullable=False)
+    # نخزنها كنص لتجنب مشاكل Enum مع FastAPI
+    category = Column(String, nullable=False)
 
     description = Column(String, nullable=True)
 

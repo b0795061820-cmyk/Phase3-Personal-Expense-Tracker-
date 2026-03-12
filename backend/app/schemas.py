@@ -35,7 +35,7 @@ class UserOut(BaseModel):
     role: str
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # =============================
@@ -82,9 +82,9 @@ class ExpenseOut(BaseModel):
     title: str
     amount: float
     category: ExpenseCategory
-    description: Optional[str]
+    description: Optional[str] = None
     date: date
     owner_id: int
 
     class Config:
-        from_attributes = True
+        orm_mode = True

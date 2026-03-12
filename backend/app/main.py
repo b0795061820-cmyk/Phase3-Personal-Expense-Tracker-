@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from typing import List
+from datetime import datetime
 
 from app.database import Base, engine, get_db
 from app.models import User, Expense, ExpenseCategory
@@ -10,16 +11,14 @@ from app.schemas import (
     UserRegister,
     UserLogin,
     TokenResponse,
-    ExpenseCreate,
     ExpenseUpdate,
     ExpenseOut
 )
+
 from app.auth import (
     hash_password,
     verify_password,
-    create_access_token,
-    get_current_user,
-    get_admin_user
+    create_access_token
 )
 
 Base.metadata.create_all(bind=engine)
@@ -87,18 +86,25 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
 # ======================
 @app.post("/expenses", response_model=ExpenseOut)
 def create_expense(
-    expense: ExpenseCreate,
+    expense: dict,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
 
+    date_value = expense.get("date")
+
+    if isinstance(date_value, str):
+        try:
+            date_value = datetime.fromisoformat(date_value)
+        except:
+            date_value = None
+
     new_expense = Expense(
-        title=expense.title,
-        amount=expense.amount,
-        category=expense.category,
-        description=expense.description,
-        date=expense.date,
-        owner_id=current_user.id
+        title=expense.get("title"),
+        amount=float(expense.get("amount", 0)),
+        category=expense.get("category"),
+        description=expense.get("description"),
+        date=date_value,
+        owner_id=1
     )
 
     db.add(new_expense)
@@ -109,17 +115,12 @@ def create_expense(
 
 
 # ======================
-# Get My Expenses
+# Get Expenses
 # ======================
 @app.get("/expenses", response_model=List[ExpenseOut])
-def get_my_expenses(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+def get_expenses(db: Session = Depends(get_db)):
 
-    expenses = db.query(Expense).filter(
-        Expense.owner_id == current_user.id
-    ).all()
+    expenses = db.query(Expense).all()
 
     return expenses
 
@@ -132,12 +133,10 @@ def update_expense(
     expense_id: int,
     expense: ExpenseUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
 
     db_expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.owner_id == current_user.id
+        Expense.id == expense_id
     ).first()
 
     if not db_expense:
@@ -171,12 +170,10 @@ def update_expense(
 def delete_expense(
     expense_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
 
     db_expense = db.query(Expense).filter(
-        Expense.id == expense_id,
-        Expense.owner_id == current_user.id
+        Expense.id == expense_id
     ).first()
 
     if not db_expense:
@@ -192,32 +189,22 @@ def delete_expense(
 # Dashboard - Total Expenses
 # ======================
 @app.get("/dashboard/total-expenses")
-def total_expenses(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+def total_expenses(db: Session = Depends(get_db)):
 
-    total = db.query(func.sum(Expense.amount)).filter(
-        Expense.owner_id == current_user.id
-    ).scalar()
+    total = db.query(func.sum(Expense.amount)).scalar()
 
-    return {"total_expenses": total or 0}
+    return {"total": total or 0}
 
 
 # ======================
 # Dashboard - Expenses by Category
 # ======================
 @app.get("/dashboard/expenses-by-category")
-def expenses_by_category(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+def expenses_by_category(db: Session = Depends(get_db)):
 
     results = db.query(
         Expense.category,
         func.sum(Expense.amount)
-    ).filter(
-        Expense.owner_id == current_user.id
     ).group_by(
         Expense.category
     ).all()
@@ -226,27 +213,22 @@ def expenses_by_category(
 
     for category, total in results:
         data.append({
-            "category": category,
-            "total": total
+            "name": category,
+            "amount": float(total)
         })
 
-    return data
+    return {"categories": data}
 
 
 # ======================
 # Dashboard - Monthly Expenses
 # ======================
 @app.get("/dashboard/monthly-expenses")
-def monthly_expenses(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+def monthly_expenses(db: Session = Depends(get_db)):
 
     results = db.query(
         extract("month", Expense.date).label("month"),
         func.sum(Expense.amount).label("total")
-    ).filter(
-        Expense.owner_id == current_user.id
     ).group_by(
         extract("month", Expense.date)
     ).order_by(
@@ -258,14 +240,14 @@ def monthly_expenses(
     for month, total in results:
         data.append({
             "month": int(month),
-            "total": total
+            "total": float(total)
         })
 
     return data
 
 
 # ======================
-# Get Expense Categories
+# Categories
 # ======================
 @app.get("/categories")
 def get_categories():
@@ -273,31 +255,3 @@ def get_categories():
     categories = [category.value for category in ExpenseCategory]
 
     return {"categories": categories}
-
-
-# ======================
-# ADMIN - Get All Users
-# ======================
-@app.get("/admin/users", response_model=List[UserOut])
-def get_all_users(
-    db: Session = Depends(get_db),
-    admin: User = Depends(get_admin_user)
-):
-
-    users = db.query(User).all()
-
-    return users
-
-
-# ======================
-# ADMIN - Get All Expenses
-# ======================
-@app.get("/admin/all-expenses", response_model=List[ExpenseOut])
-def get_all_expenses(
-    db: Session = Depends(get_db),
-    admin: User = Depends(get_admin_user)
-):
-
-    expenses = db.query(Expense).all()
-
-    return expenses
