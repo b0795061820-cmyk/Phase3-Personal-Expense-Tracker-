@@ -38,19 +38,19 @@ Categories:
 # 📱 Application Screenshots
 
 ## Register
-![Register](screenshots/register.png)
+![Register](../screenshots/register.png)
 
 ## Login
-![Login](screenshots/login.png)
+![Login](../screenshots/login.png)
 
 ## Home
-![Home](screenshots/home.png)
+![Home](../screenshots/home.png)
 
 ## Add Expense
-![Add Expense](screenshots/add.png)
+![Add Expense](../screenshots/add.png)
 
 ## Dashboard
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](../screenshots/dashboard.png)
 
 ---
 
